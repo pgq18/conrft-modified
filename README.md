@@ -82,8 +82,9 @@ Our code is built upon [CPQL](https://github.com/cccedric/cpql/), [Octo](https:/
 
 ## 📝 Citation
 
-If you find our research helpful and would like to reference it in your work, please consider the following citations:
+If you find our research helpful and would like to reference it in your work, please consider using one of the following citations, depending on the format that best suits your needs:
 
+For the Arxiv version:
 ```bibtex
 @article{chen2025conrft,
   title={ConRFT: A Reinforced Fine-tuning Method for VLA Models via Consistency Policy},
@@ -92,3 +93,13 @@ If you find our research helpful and would like to reference it in your work, pl
   year={2025}
 }
 ```
+Or, for citing our work presented at the conference of RSS 2025:
+```bibtex
+@inproceedings{chen2025conrft, 
+    title={ConRFT: A Reinforced Fine-tuning Method for VLA Models via Consistency Policy}, 
+    author={Yuhui Chen and Shuai Tian and Shugao Liu and Yingting Zhou and Haoran Li and Dongbin Zhao}, 
+    booktitle={Proceedings of Robotics: Science and Systems, {RSS} 2025, Los Angeles, CA, USA, Jun 21-25, 2025}, 
+    doi={10.15607/RSS.2025.XXI.019
+} 
+```
+
