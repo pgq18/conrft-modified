@@ -35,10 +35,11 @@ We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.c
 
 3. **Install the Octo**
     ```bash
-    git clone git@github.com:cccedric/octo.git
+    git clone https://github.com/cccedric/octo.git
     cd octo
     pip install -e .
-    pip install -r requirements.txt
+    # pip install -r requirements.txt
+    pip install tensorflow==2.19.0 tensorflow_hub tensorflow_text tensorflow_datasets tensorflow_graphics transformers
     ```
     **Note**: This is a personalized fork of Octo, adding custom functions while preserving its core capabilities for general-purpose robotic manipulation.
 
