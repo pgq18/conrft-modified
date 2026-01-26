@@ -61,6 +61,7 @@ def add_embeddings_to_trajectory(trajectory, model, tasks):
     """
     undate every transition in the trajectory and add embeddings
     return the updated trajectory
+    Handles both Octo model (with tasks) and ResNet encoder (without tasks)
     """
     for i in range(len(trajectory)):
         observation = trajectory[i]['observations']

@@ -10,8 +10,6 @@ import time
 from experiments.mappings import CONFIG_MAPPING
 from data_util import add_mc_returns_to_trajectory, add_embeddings_to_trajectory, add_next_embeddings_to_trajectory
 
-from octo.model.octo_model import OctoModel
-
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
     "exp_name", None, "Name of experiment corresponding to folder.")
@@ -19,7 +17,7 @@ flags.DEFINE_integer("successes_needed", 20,
                      "Number of successful demos to collect.")
 flags.DEFINE_float("reward_scale", 1.0, "reward_scale ")
 flags.DEFINE_float("reward_bias", 0.0, "reward_bias")
-
+flags.DEFINE_string("backbone", "octo", "Backbone to use.")
 
 def main(_):
     assert FLAGS.exp_name in CONFIG_MAPPING, 'Experiment folder not found.'
@@ -27,14 +25,24 @@ def main(_):
     env = config.get_environment(
         fake_env=False, save_video=False, classifier=True, stack_obs_num=2)
 
-    model = OctoModel.load_pretrained(config.octo_path)
-    tasks = model.create_tasks(texts=[config.task_desc])
-    # model = None
-    # tasks = None
-
     obs, info = env.reset()
     print(obs.keys())
     print("Reset done")
+
+    # Initialize model after we have the first observation
+    if FLAGS.backbone == "octo":
+        print("Using Octo model for encoder")
+        from octo.model.octo_model import OctoModel # type: ignore
+        model = OctoModel.load_pretrained(config.octo_path)
+        tasks = model.create_tasks(texts=[config.task_desc]) # instruction embedding
+    elif FLAGS.backbone == "walloss":
+        print("Using pretrained walloss for encoder")
+        # todo: load pretrained walloss model
+        tasks = None
+    else:
+        print("Backbone not supported")
+        model = None
+        tasks = None
 
     transitions = []
     success_count = 0

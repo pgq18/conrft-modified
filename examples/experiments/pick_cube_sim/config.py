@@ -105,7 +105,7 @@ class TrainConfig(DefaultTrainingConfig):
     # setup_mode = "single-arm-fixed-gripper"
     setup_mode = "single-arm-learned-gripper"
 
-    def get_environment(self, fake_env=False, save_video=False, classifier=False, render_mode="human"):
+    def get_environment(self, fake_env=False, save_video=False, classifier=False, render_mode="human", stack_obs_num=1):
         # env = RAMEnv(
         #     fake_env=fake_env,
         #     save_video=save_video,
@@ -122,7 +122,7 @@ class TrainConfig(DefaultTrainingConfig):
         # env = RelativeFrame(env)
         # env = Quat2EulerWrapper(env)
         env = SERLObsWrapper(env, proprio_keys=self.proprio_keys)
-        env = ChunkingWrapper(env, obs_horizon=1, act_exec_horizon=None)
+        env = ChunkingWrapper(env, obs_horizon=stack_obs_num, act_exec_horizon=None)
         if classifier:
             classifier = load_classifier_func(
                 key=jax.random.PRNGKey(0),

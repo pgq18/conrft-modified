@@ -4,9 +4,8 @@
 # debugpy.wait_for_client()
 # print("Debugger Attached")
 
-import sys
-sys.path.insert(0, '/data/disk0/Home/pengguanqi/Workspace/VLA/conrft/serl_robot_infra')
-sys.path.insert(0, '/data/disk0/Home/pengguanqi/Workspace/VLA/conrft')
+import os, sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from franka_sim.envs.panda_pick_gym_env import PandaPickCubeGymEnv
 from franka_env.envs.wrappers import (
