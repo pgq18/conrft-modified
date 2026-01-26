@@ -9,6 +9,7 @@ import requests
 from scipy.spatial.transform import Rotation as R
 from franka_env.envs.franka_env import FrankaEnv
 from typing import List
+import glfw
 
 sigmoid = lambda x: 1 / (1 + np.exp(-x))
 
@@ -628,10 +629,10 @@ class StackObsWrapper(gym.Wrapper):
         """
         super().__init__(env)
         self.num_stack = num_stack
-        
+
         self.observation_space = self._stack_observation_space(env.observation_space)
         self._frames = {key: None for key in self.observation_space.spaces.keys()}
-        
+
     def _stack_observation_space(self, obs_space):
         """Modify the observation space to support stacked frames."""
         stacked_spaces = {}
@@ -643,17 +644,17 @@ class StackObsWrapper(gym.Wrapper):
             else:
                 raise NotImplementedError(f"Stacking not implemented for {type(space)}")
         return Dict(stacked_spaces)
-    
+
     def _get_stacked_obs(self):
         """Constructs the stacked observation."""
         return {key: np.stack(self._frames[key], axis=0) for key in self._frames.keys()}
-    
+
     def reset(self, **kwargs):
         """Resets the environment and initializes the stacked frames."""
         obs, info = self.env.reset(**kwargs)
         self._frames = {key: [obs[key].squeeze(0)] * self.num_stack for key in self._frames.keys()}
         return self._get_stacked_obs(), info
-    
+
     def step(self, action):
         """Steps through the environment and updates the stacked frames."""
         next_obs, reward, done, truncated, info = self.env.step(action)
@@ -661,5 +662,129 @@ class StackObsWrapper(gym.Wrapper):
             self._frames[key].pop(0)  # Remove the oldest frame
             self._frames[key].append(next_obs[key].squeeze(0))  # Add the new frame
         return self._get_stacked_obs(), reward, done, truncated, info
+
+
+class KeyBoardIntervention2(gym.ActionWrapper):
+    def __init__(self, env, action_indices=None):
+        super().__init__(env)
+
+        self.gripper_enabled = True
+        if self.action_space.shape == (6,):
+            self.gripper_enabled = False
+
+        self.left, self.right = False, False
+        self.action_indices = action_indices
+
+        self.gripper_state = 'close'
+        self.intervened = False
+        self.action_length = 0.3
+        self.current_action = np.array([0, 0, 0, 0, 0, 0])  # 分别对应 W, A, S, D 的状态
+        self.flag = False
+        self.key_states = {
+            'w': False,
+            'a': False,
+            's': False,
+            'd': False,
+            'j': False,
+            'k': False,
+            'l': False,
+            ';': False,
+        }
+
+        # 设置 GLFW 键盘回调
+        glfw.set_key_callback(self.env._viewer.viewer.window, self.glfw_on_key)
+
+    def glfw_on_key(self, window, key, scancode, action, mods):
+        if action == glfw.PRESS:
+            if key == glfw.KEY_W:
+                self.key_states['w'] = True
+            elif key == glfw.KEY_A:
+                self.key_states['a'] = True
+            elif key == glfw.KEY_S:
+                self.key_states['s'] = True
+            elif key == glfw.KEY_D:
+                self.key_states['d'] = True
+            elif key == glfw.KEY_J:
+                self.key_states['j'] = True
+            elif key == glfw.KEY_K:
+                self.key_states['k'] = True
+            elif key == glfw.KEY_L:
+                self.key_states['l'] = True
+                self.flag = True
+            elif key == glfw.KEY_SEMICOLON:
+                self.intervened = not self.intervened
+                self.env.intervened = self.intervened
+                print(f"Intervention toggled: {self.intervened}")
+
+        elif action == glfw.RELEASE:
+            if key == glfw.KEY_W:
+                self.key_states['w'] = False
+            elif key == glfw.KEY_A:
+                self.key_states['a'] = False
+            elif key == glfw.KEY_S:
+                self.key_states['s'] = False
+            elif key == glfw.KEY_D:
+                self.key_states['d'] = False
+            elif key == glfw.KEY_J:
+                self.key_states['j'] = False
+            elif key == glfw.KEY_K:
+                self.key_states['k'] = False
+            elif key == glfw.KEY_L:
+                self.key_states['l'] = False
+
+        self.current_action = [
+            int(self.key_states['w']) - int(self.key_states['s']),
+            int(self.key_states['a']) - int(self.key_states['d']),
+            int(self.key_states['j']) - int(self.key_states['k']),
+            0,
+            0,
+            0,
+        ]
+        self.current_action = np.array(self.current_action, dtype=np.float64)
+        self.current_action *= self.action_length
+
+    def action(self, action: np.ndarray) -> np.ndarray:
+        expert_a = self.current_action.copy()
+
+        if self.gripper_enabled:
+            if self.flag and self.gripper_state == 'open':  # close gripper
+                # gripper_action = np.random.uniform(-1, -0.9, size=(1,))
+                self.gripper_state = 'close'
+                self.flag = False
+            elif self.flag and self.gripper_state == 'close':  # open gripper
+                # gripper_action = np.random.uniform(0.9, 1, size=(1,))
+                self.gripper_state = 'open'
+                self.flag = False
+            else:
+                # gripper_action = np.zeros((1,))
+                pass
+            # print(self.gripper_state, )
+            gripper_action = np.random.uniform(0.9, 1, size=(1,)) if self.gripper_state == 'close' else np.random.uniform(-1, -0.9, size=(1,))
+            expert_a = np.concatenate((expert_a, gripper_action), axis=0)
+
+
+        if self.action_indices is not None:
+            filtered_expert_a = np.zeros_like(expert_a)
+            filtered_expert_a[self.action_indices] = expert_a[self.action_indices]
+            expert_a = filtered_expert_a
+        if self.intervened:
+            return expert_a, True
+        else:
+            return action, False
+
+    def step(self, action):
+        new_action, replaced = self.action(action)
+
+        obs, rew, done, truncated, info = self.env.step(new_action)
+        if replaced:
+            info["intervene_action"] = new_action
+        info["left"] = self.left
+        info["right"] = self.right
+        return obs, rew, done, truncated, info
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        self.gripper_state = 'open'
+        return obs, info
         
         
