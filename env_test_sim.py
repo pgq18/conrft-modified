@@ -6,6 +6,7 @@
 
 import sys
 sys.path.insert(0, '/data/disk0/Home/pengguanqi/Workspace/VLA/conrft/serl_robot_infra')
+sys.path.insert(0, '/data/disk0/Home/pengguanqi/Workspace/VLA/conrft')
 
 from franka_sim.envs.panda_pick_gym_env import PandaPickCubeGymEnv
 from franka_env.envs.wrappers import (

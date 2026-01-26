@@ -6,7 +6,15 @@ import flax
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-from octo.utils.typing import Data
+
+# Octo imports - only imported when actually needed for ConsistencyPolicy_octo
+try:
+    from octo.utils.typing import Data
+    OCTO_AVAILABLE = True
+except ImportError:
+    OCTO_AVAILABLE = False
+    # Create a dummy type for type hints when octo is not available
+    Data = None  # type: ignore
 
 from serl_launcher.common.common import default_init
 from serl_launcher.networks.mlp import MLP

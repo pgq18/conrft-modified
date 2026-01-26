@@ -1,12 +1,21 @@
-from typing import Dict, Iterable, Optional, Tuple
+from __future__ import annotations
+
+from typing import Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 import flax
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
 from einops import rearrange, repeat
-from octo.model.octo_module import OctoTransformer
-from octo.utils.typing import Config, Data, Params, PRNGKey, Sequence
+
+# Octo imports - only imported when actually needed for OctoEncodingWrapper
+try:
+    from octo.model.octo_module import OctoTransformer
+    from octo.utils.typing import Config, Data, Params, PRNGKey, Sequence
+    OCTO_AVAILABLE = True
+except ImportError:
+    OCTO_AVAILABLE = False
+    OctoTransformer = None  # type: ignore
 
 class EncodingWrapper(nn.Module):
     """
@@ -93,6 +102,14 @@ class OctoEncodingWrapper(nn.Module):
     proprio_latent_dim: int = 64
     enable_stacking: bool = False
     image_keys: Iterable[str] = ("image",)
+
+    def __setup__(self):
+        if not OCTO_AVAILABLE:
+            raise ImportError(
+                "OctoEncodingWrapper requires octo to be installed. "
+                "Please install octo or use EncodingWrapper with resnet encoder instead. "
+                "To install octo, follow the instructions in CLAUDE.md."
+            )
 
     @nn.compact
     def __call__(

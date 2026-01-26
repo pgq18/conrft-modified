@@ -19,7 +19,7 @@ from serl_launcher.networks.reward_classifier import load_classifier_func
 # from experiments.config import DefaultTrainingConfig
 # from experiments.ram_insertion.wrapper import RAMEnv
 from examples.experiments.config import DefaultTrainingConfig
-from examples.experiments.ram_insertion.wrapper import RAMEnv
+# from examples.experiments.ram_insertion.wrapper import RAMEnv  # Not used for pick_cube_sim
 
 from franka_sim.envs.panda_pick_gym_env import PandaPickCubeGymEnv
 
