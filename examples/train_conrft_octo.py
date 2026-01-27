@@ -282,7 +282,8 @@ def learner(rng, tasks, agent, replay_buffer, demo_buffer, wandb_logger=None):
     start_step = (
         int(os.path.basename(checkpoints.latest_checkpoint(
             FLAGS.checkpoint_path))[11:]) + 1
-        if FLAGS.checkpoint_path and os.path.exists(FLAGS.checkpoint_path)
+        if FLAGS.checkpoint_path and os.path.exists(FLAGS.checkpoint_path) and
+           checkpoints.latest_checkpoint(FLAGS.checkpoint_path) is not None
         else 0
     )
     step = start_step
@@ -517,18 +518,23 @@ def main(_):
             input("Checkpoint path already exists. Press Enter to resume training.")
         ckpt = checkpoints.restore_checkpoint(
             FLAGS.checkpoint_path, agent.state,)
-        # agent = agent.replace(state=ckpt)
 
-        # Update params only, ignore the optimizer states
-        new_params = ckpt.params
-        new_target_params = ckpt.target_params
+        if ckpt is not None:
+            # Update params only, ignore the optimizer states
+            new_params = ckpt.params
+            new_target_params = ckpt.target_params
 
-        agent = agent.replace(state=agent.state.replace(
-            params=new_params, target_params=new_target_params))
+            agent = agent.replace(state=agent.state.replace(
+                params=new_params, target_params=new_target_params))
 
-        ckpt_number = os.path.basename(
-            checkpoints.latest_checkpoint(FLAGS.checkpoint_path))[11:]
-        print_green(f"Loaded previous checkpoint at step {ckpt_number}.")
+            latest_ckpt = checkpoints.latest_checkpoint(FLAGS.checkpoint_path)
+            if latest_ckpt is not None:
+                ckpt_number = os.path.basename(latest_ckpt)[11:]
+                print_green(f"Loaded previous checkpoint at step {ckpt_number}.")
+            else:
+                print_green("No checkpoint found, starting from scratch.")
+        else:
+            print_green("No checkpoint found, starting from scratch.")
 
     def create_replay_buffer_and_wandb_logger():
         replay_buffer = MemoryEfficientReplayBufferDataStore(
@@ -572,8 +578,10 @@ def main(_):
                     if 'infos' in transition and 'grasp_penalty' in transition['infos']:
                         transition['grasp_penalty'] = transition['infos']['grasp_penalty']
                     demo_buffer.insert(transition)
+        print("--------------------------------------------------------------------------")
         print_green(f"demo buffer size: {len(demo_buffer)}")
         print_green(f"online buffer size: {len(replay_buffer)}")
+        print("--------------------------------------------------------------------------")
 
         if FLAGS.checkpoint_path is not None and os.path.exists(os.path.join(FLAGS.checkpoint_path, "buffer")):
             for file in glob.glob(os.path.join(FLAGS.checkpoint_path, "buffer/*.pkl")):

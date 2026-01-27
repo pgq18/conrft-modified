@@ -104,6 +104,9 @@ class TrainConfig(DefaultTrainingConfig):
     encoder_type = "resnet-pretrained"
     # setup_mode = "single-arm-fixed-gripper"
     setup_mode = "single-arm-learned-gripper"
+    reward_neg = -0.05
+    task_desc = "Pick up the cube"
+    octo_path = "/home/pgq/Models/octo-small-1.5"
 
     def get_environment(self, fake_env=False, save_video=False, classifier=False, render_mode="human", stack_obs_num=1):
         # env = RAMEnv(

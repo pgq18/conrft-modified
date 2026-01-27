@@ -57,26 +57,57 @@ def add_mc_returns_to_trajectory(trajectory, gamma, reward_scale, reward_bias, r
     return trajectory
 
 
-def add_embeddings_to_trajectory(trajectory, model, tasks):
+def add_embeddings_to_trajectory(trajectory, model, tasks, image_keys):
     """
     undate every transition in the trajectory and add embeddings
     return the updated trajectory
     Handles both Octo model (with tasks) and ResNet encoder (without tasks)
     """
+    import cv2
+
     for i in range(len(trajectory)):
         observation = trajectory[i]['observations']
 
-        image_primary = observation["side_policy_256"]
-        image_wrist = observation["wrist_1"]
+        # image_primary = observation["side_policy_256"]
+        # image_wrist = observation["wrist_1"]
+        image_primary = observation[image_keys[0]]
+        image_wrist = observation[image_keys[1]]
+
+        # Resize images to match Octo's expected sizes:
+        # image_primary: 256x256 (keep as is)
+        # image_wrist: 256x256 -> 128x128
+        if image_wrist.ndim == 4:  # (window, H, W, C)
+            image_wrist = np.stack([cv2.resize(frame, (128, 128), interpolation=cv2.INTER_LINEAR)
+                                    for frame in image_wrist])
+        elif image_wrist.ndim == 3:  # (H, W, C)
+            image_wrist = cv2.resize(image_wrist, (128, 128), interpolation=cv2.INTER_LINEAR)
+
         # Add batch dimension
         image_primary = image_primary[np.newaxis, ...]
         image_wrist = image_wrist[np.newaxis, ...]
-        timestep_pad_mask = np.array([[True, True]])
 
-        observation = {"image_primary": image_primary,
-                       "image_wrist": image_wrist,
-                       "timestep_pad_mask": timestep_pad_mask,
-                       }
+        timestep_pad_mask = np.array([[True, True]])
+        # batch_size, window_size = image_primary.shape[:2]
+        # timestep_pad_mask = np.ones((batch_size, window_size), dtype=bool)
+        # timestep = np.arange(window_size)[None, :].repeat(batch_size, axis=0)
+
+        observation = {
+            "image_primary": image_primary,
+            "image_wrist": image_wrist,
+            "timestep_pad_mask": timestep_pad_mask
+            }
+        # observation = {
+        #     "image_primary": image_primary,
+        #     "image_wrist": image_wrist,
+        #     "timestep": timestep,
+        #     "timestep_pad_mask": timestep_pad_mask,
+        #     "pad_mask_dict": {
+        #         "image_primary": timestep_pad_mask,
+        #         "image_wrist": timestep_pad_mask,
+        #         "timestep": timestep_pad_mask,
+        #     },
+        #     "task_completed": np.zeros((batch_size, window_size), dtype=np.float32),
+        # }
 
         action_embeddings = model.sample_transformer(observation, tasks,)
         # Now, action_embeddings is (batch_size, window_size, embedding_size)

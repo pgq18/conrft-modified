@@ -161,7 +161,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
                     }
                 ),
                 "images": gym.spaces.Dict(
-                    {key: gym.spaces.Box(0, 255, shape=(128, 128, 3), dtype=np.uint8) 
+                    {key: gym.spaces.Box(0, 255, shape=(256, 256, 3), dtype=np.uint8)
                                 for key in config.REALSENSE_CAMERAS}
                 ),
             }

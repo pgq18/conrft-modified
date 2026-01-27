@@ -119,13 +119,29 @@ class OctoEncodingWrapper(nn.Module):
         action_embeddings: jnp.ndarray=None,
         train=True,
         stop_gradient=False,
-    ) -> jnp.ndarray:   
-        if action_embeddings is None:     
-            image_primary = observations["side_policy_256"]
-            image_wrist = observations["wrist_1"]
+    ) -> jnp.ndarray:
+        if action_embeddings is None:
+            # Use image_keys from configuration instead of hardcoded values
+            image_primary_key = self.image_keys[0]
+            image_wrist_key = self.image_keys[1] if len(self.image_keys) > 1 else self.image_keys[0]
+
+            image_primary = observations[image_primary_key]
+            image_wrist = observations[image_wrist_key]
             if image_primary.ndim == 4:
                 image_primary = image_primary[jnp.newaxis, ...]
                 image_wrist = image_wrist[jnp.newaxis, ...]
+
+            # Resize images to match Octo's expected sizes
+            # Octo expects: image_primary at 256x256, image_wrist at 128x128
+            if image_primary.shape[-2] != 256 or image_primary.shape[-3] != 256:
+                # Resize image_primary to 256x256
+                image_primary = jax.image.resize(image_primary, shape=image_primary.shape[:-3] + (256, 256) + image_primary.shape[-1:],
+                                                method='bilinear')
+            if image_wrist.shape[-2] != 128 or image_wrist.shape[-3] != 128:
+                # Resize image_wrist to 128x128
+                image_wrist = jax.image.resize(image_wrist, shape=image_wrist.shape[:-3] + (128, 128) + image_wrist.shape[-1:],
+                                              method='bilinear')
+
             batch_size = image_primary.shape[0]
             window_size = image_primary.shape[1]
             timestep_pad_mask = jnp.ones((batch_size, window_size), dtype=bool)

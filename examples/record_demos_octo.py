@@ -22,17 +22,19 @@ flags.DEFINE_string("backbone", "octo", "Backbone to use.")
 def main(_):
     assert FLAGS.exp_name in CONFIG_MAPPING, 'Experiment folder not found.'
     config = CONFIG_MAPPING[FLAGS.exp_name]()
+    image_keys = config.image_keys
     env = config.get_environment(
         fake_env=False, save_video=False, classifier=True, stack_obs_num=2)
 
     obs, info = env.reset()
-    print(obs.keys())
+    print("Observation keys: ", obs.keys())
+    print("Image keys: ", image_keys)
     print("Reset done")
 
     # Initialize model after we have the first observation
     if FLAGS.backbone == "octo":
         print("Using Octo model for encoder")
-        from octo.model.octo_model import OctoModel # type: ignore
+        from octo.model.octo_model import OctoModel
         model = OctoModel.load_pretrained(config.octo_path)
         tasks = model.create_tasks(texts=[config.task_desc]) # instruction embedding
     elif FLAGS.backbone == "walloss":
@@ -78,7 +80,7 @@ def main(_):
                 trajectory = add_mc_returns_to_trajectory(
                     trajectory, config.discount, FLAGS.reward_scale, FLAGS.reward_bias, config.reward_neg, is_sparse_reward=True)
                 trajectory = add_embeddings_to_trajectory(
-                    trajectory, model, tasks=tasks)
+                    trajectory, model, tasks=tasks, image_keys=image_keys)
                 trajectory = add_next_embeddings_to_trajectory(trajectory)
                 for transition in trajectory:
                     transitions.append(copy.deepcopy(transition))
