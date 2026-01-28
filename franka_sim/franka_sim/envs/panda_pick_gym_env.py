@@ -44,8 +44,10 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         image_obs: bool = False,
         config = None,
         hz = 10,
+        autonomous_hz = 20,  # Faster speed for autonomous mode (easier to intervene)
     ):
         self.hz = hz
+        self.autonomous_hz = autonomous_hz
         self._action_scale = action_scale
         # render_mode = "rgb_array"
         # control_dt = 0.1
@@ -294,8 +296,11 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             self._viewer.render(self.render_mode)
             dt = time.time() - start_time
             if self.intervened == True:
+                # Slow speed during human intervention
                 time.sleep(max(0, (1.0 / self.hz) - dt))
-            # time.sleep(max(0, (1.0 / self.hz) - dt))
+            else:
+                # Faster speed during autonomous mode (but still limited)
+                time.sleep(max(0, (1.0 / self.autonomous_hz) - dt))
             # cv2.imshow('Concatenated Image', np.hstack((obs["images"]["wrist_1"], obs["images"]["wrist_2"])))
             # cv2.waitKey(1)
 

@@ -8,7 +8,7 @@ from franka_env.envs.wrappers import (
     SpacemouseIntervention,
     MultiCameraBinaryRewardClassifierWrapper,
     GripperCloseEnv,
-    KeyBoardIntervention2
+    # KeyBoardIntervention2
 )
 from franka_env.envs.relative_env import RelativeFrame
 from franka_env.envs.franka_env import DefaultEnvConfig
@@ -104,9 +104,12 @@ class TrainConfig(DefaultTrainingConfig):
     encoder_type = "resnet-pretrained"
     # setup_mode = "single-arm-fixed-gripper"
     setup_mode = "single-arm-learned-gripper"
-    reward_neg = -0.05
     task_desc = "Pick up the cube"
     octo_path = "/home/pgq/Models/octo-small-1.5"
+    reward_neg = -0.05
+    discount = 0.98
+    random_steps = 0
+    cta_ratio = 2
 
     def get_environment(self, fake_env=False, save_video=False, classifier=False, render_mode="human", stack_obs_num=1):
         # env = RAMEnv(
@@ -167,10 +170,10 @@ class KeyBoardIntervention2(gym.ActionWrapper):
             'a': False,
             's': False,
             'd': False,
+            'h': False,
             'j': False,
             'k': False,
             'l': False,
-            ';': False,
         }
 
         # 设置 GLFW 键盘回调
@@ -186,14 +189,14 @@ class KeyBoardIntervention2(gym.ActionWrapper):
                 self.key_states['s'] = True
             elif key == glfw.KEY_D:
                 self.key_states['d'] = True
+            elif key == glfw.KEY_H:
+                self.key_states['h'] = True
             elif key == glfw.KEY_J:
                 self.key_states['j'] = True
             elif key == glfw.KEY_K:
                 self.key_states['k'] = True
-            elif key == glfw.KEY_L:
-                self.key_states['l'] = True
                 self.flag = True
-            elif key == glfw.KEY_SEMICOLON:
+            elif key == glfw.KEY_L:
                 self.intervened = not self.intervened
                 self.env.intervened = self.intervened
                 print(f"Intervention toggled: {self.intervened}")
@@ -207,17 +210,17 @@ class KeyBoardIntervention2(gym.ActionWrapper):
                 self.key_states['s'] = False
             elif key == glfw.KEY_D:
                 self.key_states['d'] = False
+            elif key == glfw.KEY_H:
+                self.key_states['h'] = False
             elif key == glfw.KEY_J:
                 self.key_states['j'] = False
             elif key == glfw.KEY_K:
                 self.key_states['k'] = False
-            elif key == glfw.KEY_L:
-                self.key_states['l'] = False
 
         self.current_action = [
             int(self.key_states['w']) - int(self.key_states['s']), 
             int(self.key_states['a']) - int(self.key_states['d']), 
-            int(self.key_states['j']) - int(self.key_states['k']),  
+            int(self.key_states['h']) - int(self.key_states['j']),  
             0,
             0,
             0,

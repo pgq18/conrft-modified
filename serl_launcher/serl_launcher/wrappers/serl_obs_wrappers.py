@@ -26,6 +26,7 @@ class SERLObsWrapper(gym.ObservationWrapper):
         )
 
     def observation(self, obs):
+        # print(obs["state"].keys()) # dict_keys(['tcp_pose', 'tcp_vel', 'gripper_pose', 'tcp_force', 'tcp_torque'])
         obs = {
             "state": flatten(
                 self.proprio_space,
