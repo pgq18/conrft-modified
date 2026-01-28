@@ -39,8 +39,9 @@ We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.c
     cd octo
     pip install -e .
     # pip install -r requirements.txt
-    pip install dlimp@git+https://github.com/kvablack/dlimp@5edaa4691567873d495633f2708982b42edf1972 # it is ok if the veriosn mismatch, but it should work fine.
-    pip install tensorflow==2.19.0 tensorflow_hub tensorflow_text tensorflow_datasets tensorflow_graphics transformers==4.34 ml-dtypes orbax-checkpoint==0.11.5 tensorstore
+    # It is ok if veriosn mismatch happens running scripts below. It should work fine.
+    pip install dlimp@git+https://github.com/kvablack/dlimp@5edaa4691567873d495633f2708982b42edf1972 
+    pip install tensorflow==2.19.0 tensorflow_hub tensorflow_text tensorflow_datasets tensorflow_graphics transformers==4.34 ml-dtypes orbax-checkpoint==0.11.5 tensorstore 
     ```
     **Note**: This is a personalized fork of Octo, adding custom functions while preserving its core capabilities for general-purpose robotic manipulation.
 
