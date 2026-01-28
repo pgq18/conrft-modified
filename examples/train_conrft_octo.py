@@ -147,9 +147,15 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
     )
 
     # Function to update the agent with new params
+    update_count = [0]  # Use list to allow modification in nested function
     def update_params(params):
         nonlocal agent
         agent = agent.replace(state=agent.state.replace(params=params))
+        update_count[0] += 1
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print("\n" + "="*60)
+        print(f"\033[92m[UPDATE {update_count[0]:3d}]\033[00m Received new policy weights from learner at {current_time}")
+        print("="*60 + "\n")
 
     client.recv_network_callback(update_params)
 
