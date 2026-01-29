@@ -330,6 +330,14 @@ class KeyBoardIntervention2(gym.ActionWrapper):
                 - Boolean indicating whether intervention occurred (True)
                   or model action was used (False)
         """
+        # Handle gripper state toggle (K key)
+        if self.flag:
+            if self.gripper_state == 'open':
+                self.gripper_state = 'close'
+            elif self.gripper_state == 'close':
+                self.gripper_state = 'open'
+            self.flag = False
+
         # Build keyboard action from current key states
         keyboard_action = self._build_keyboard_action()
         any_key_pressed = self._any_movement_key_pressed()
