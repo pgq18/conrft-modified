@@ -218,9 +218,9 @@ class KeyBoardIntervention2(gym.ActionWrapper):
                 self.key_states['k'] = False
 
         self.current_action = [
-            int(self.key_states['w']) - int(self.key_states['s']), 
-            int(self.key_states['a']) - int(self.key_states['d']), 
-            int(self.key_states['h']) - int(self.key_states['j']),  
+            int(self.key_states['w']) - int(self.key_states['s']),
+            int(self.key_states['a']) - int(self.key_states['d']),
+            int(self.key_states['h']) - int(self.key_states['j']),
             0,
             0,
             0,

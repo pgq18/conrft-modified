@@ -192,6 +192,7 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
 
         # Step environment
         with timer.context("step_env"):
+            print(actions)
             next_obs, reward, done, truncated, info = env.step(actions)
             if "left" in info:
                 info.pop("left")

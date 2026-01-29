@@ -27,10 +27,13 @@ obs, _ = env.reset()
 
 while True:
     actions = env.action_space.sample()
-    print(actions)
+    # print(actions)
     # actions = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1]) # relative action
     # actions = np.zeros(env.action_space.sample().shape)
     next_obs, reward, done, truncated, info = env.step(actions)
+    if "intervene_action" in info:
+        actions = info["intervene_action"]
+        print(actions)
     # print(next_obs["state"])
 
     # Display camera images
