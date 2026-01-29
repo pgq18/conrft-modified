@@ -242,8 +242,11 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
 
         # Set the mocap position.
         pos = self._data.mocap_pos[0].copy()
+        print("x, y, z: ", [x, y, z])
         dpos = np.asarray([x, y, z]) * self._action_scale[0]
+        print("dpos: ", dpos)
         npos = np.clip(pos + dpos, *_CARTESIAN_BOUNDS)
+        print("npos: ", npos)
         self._data.mocap_pos[0] = npos
 
         # Set gripper grasp.
