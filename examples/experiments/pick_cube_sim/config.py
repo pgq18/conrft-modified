@@ -193,7 +193,7 @@ class KeyBoardIntervention2(gym.ActionWrapper):
         self.current_action = np.array([0, 0, 0, 0, 0, 0])  # 分别对应 W, A, S, D 的状态
         self.flag = False
         # New state variables for enhanced intervention
-        self.decay_coefficient = 0.9  # Exponential decay factor
+        self.decay_coefficient = 0.5  # Exponential decay factor
         self.decay_threshold = 0.01  # Threshold to zero out actions
         self.key_states = {
             'w': False,
@@ -330,17 +330,33 @@ class KeyBoardIntervention2(gym.ActionWrapper):
                 - Boolean indicating whether intervention occurred (True)
                   or model action was used (False)
         """
+        # Build keyboard action from current key states
+        keyboard_action = self._build_keyboard_action()
+        any_key_pressed = self._any_movement_key_pressed()
+
         # Handle gripper state toggle (K key)
+        # When K is pressed, always return keyboard action with updated gripper state
         if self.flag:
             if self.gripper_state == 'open':
                 self.gripper_state = 'close'
             elif self.gripper_state == 'close':
                 self.gripper_state = 'open'
+
+            # Rebuild keyboard action with updated gripper state
+            keyboard_action = self._build_keyboard_action()
             self.flag = False
 
-        # Build keyboard action from current key states
-        keyboard_action = self._build_keyboard_action()
-        any_key_pressed = self._any_movement_key_pressed()
+            # Store for decay in Mode 1
+            if self.intervened:
+                self.last_keyboard_action = keyboard_action.copy()
+
+            # Apply action index filtering if needed
+            if self.action_indices is not None:
+                filtered_expert_a = np.zeros_like(keyboard_action)
+                filtered_expert_a[self.action_indices] = keyboard_action[self.action_indices]
+                keyboard_action = filtered_expert_a
+
+            return keyboard_action, True
 
         if self.intervened:
             # Mode 1: L-key full intervention mode with decay
