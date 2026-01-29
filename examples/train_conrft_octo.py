@@ -201,6 +201,10 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
 
             # override the action with the intervention action
             if "intervene_action" in info:
+                print("---------------------------------------------------------")
+                print("predict action: ", actions)
+                print("intervene action: ", info["intervene_action"])
+                print("---------------------------------------------------------")
                 actions = info.pop("intervene_action")
                 intervention_steps += 1
                 if not already_intervened:
