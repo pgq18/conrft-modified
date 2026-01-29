@@ -253,35 +253,56 @@ class KeyBoardIntervention2(gym.ActionWrapper):
         else:
             return base_action
 
+    def _any_movement_key_pressed(self):
+        """Check if any movement key (WASD, HJK) is currently pressed."""
+        movement_keys = ['w', 'a', 's', 'd', 'h', 'j']
+        return any(self.key_states[key] for key in movement_keys)
+
     def action(self, action: np.ndarray) -> np.ndarray:
-        expert_a = self.current_action.copy()
+        """Transform action based on current intervention mode and key states."""
+        # Build keyboard action from current key states
+        keyboard_action = self._build_keyboard_action()
+        any_key_pressed = self._any_movement_key_pressed()
 
-        if self.gripper_enabled:
-            if self.flag and self.gripper_state == 'open':  # close gripper
-                # gripper_action = np.random.uniform(-1, -0.9, size=(1,))
-                self.gripper_state = 'close'
-                self.flag = False
-            elif self.flag and self.gripper_state == 'close':  # open gripper
-                # gripper_action = np.random.uniform(0.9, 1, size=(1,))
-                self.gripper_state = 'open'
-                self.flag = False
-            else:
-                # gripper_action = np.zeros((1,))
-                pass
-            # print(self.gripper_state, )
-            gripper_action = np.random.uniform(0.9, 1, size=(1,)) if self.gripper_state == 'close' else np.random.uniform(-1, -0.9, size=(1,))
-            expert_a = np.concatenate((expert_a, gripper_action), axis=0)
-
-        
-
-        if self.action_indices is not None:
-            filtered_expert_a = np.zeros_like(expert_a)
-            filtered_expert_a[self.action_indices] = expert_a[self.action_indices]
-            expert_a = filtered_expert_a
         if self.intervened:
+            # Mode 1: L-key full intervention mode with decay
+            if any_key_pressed:
+                # Keys pressed: use keyboard action, store for decay
+                self.last_keyboard_action = keyboard_action.copy()
+                expert_a = keyboard_action
+            else:
+                # No keys pressed: decay the last keyboard action
+                self.last_keyboard_action *= self.decay_coefficient
+
+                # Zero out actions below threshold
+                mask = np.abs(self.last_keyboard_action) < self.decay_threshold
+                self.last_keyboard_action[mask] = 0.0
+
+                expert_a = self.last_keyboard_action
+
+            # Apply action index filtering if needed
+            if self.action_indices is not None:
+                filtered_expert_a = np.zeros_like(expert_a)
+                filtered_expert_a[self.action_indices] = expert_a[self.action_indices]
+                expert_a = filtered_expert_a
+
             return expert_a, True
+
         else:
-            return action, False
+            # Mode 2: Temporary intervention mode (no decay)
+            if any_key_pressed:
+                # Keys pressed: temporarily use keyboard action
+                expert_a = keyboard_action
+
+                if self.action_indices is not None:
+                    filtered_expert_a = np.zeros_like(expert_a)
+                    filtered_expert_a[self.action_indices] = expert_a[self.action_indices]
+                    expert_a = filtered_expert_a
+
+                return expert_a, True
+            else:
+                # No keys pressed: use model action
+                return action, False
 
     def step(self, action):
         new_action, replaced = self.action(action)
