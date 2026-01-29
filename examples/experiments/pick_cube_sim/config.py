@@ -323,4 +323,5 @@ class KeyBoardIntervention2(gym.ActionWrapper):
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
         self.gripper_state = 'open'
+        self.last_keyboard_action = np.zeros_like(self.last_keyboard_action)
         return obs, info
