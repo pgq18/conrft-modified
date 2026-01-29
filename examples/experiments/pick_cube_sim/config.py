@@ -234,6 +234,25 @@ class KeyBoardIntervention2(gym.ActionWrapper):
         self.current_action = np.array(self.current_action, dtype=np.float64)
         self.current_action *= self.action_length
 
+    def _build_keyboard_action(self):
+        """Build keyboard action from current key states."""
+        # Build base 6DOF action from WASD + HJK keys
+        base_action = np.array([
+            int(self.key_states['w']) - int(self.key_states['s']),  # x axis
+            int(self.key_states['a']) - int(self.key_states['d']),  # y axis
+            int(self.key_states['h']) - int(self.key_states['j']),  # z axis
+            0,  # roll (no keyboard control)
+            0,  # pitch (no keyboard control)
+            0,  # yaw (no keyboard control)
+        ], dtype=np.float64) * self.action_length
+
+        # Add gripper action if enabled
+        if self.gripper_enabled:
+            gripper_action = np.array([0.9]) if self.gripper_state == 'close' else np.array([-0.9])
+            return np.concatenate([base_action, gripper_action])
+        else:
+            return base_action
+
     def action(self, action: np.ndarray) -> np.ndarray:
         expert_a = self.current_action.copy()
 
