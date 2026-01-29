@@ -360,19 +360,28 @@ class KeyBoardIntervention2(gym.ActionWrapper):
 
         if self.intervened:
             # Mode 1: L-key full intervention mode with decay
-            if any_key_pressed:
-                # Keys pressed: use keyboard action, store for decay
-                self.last_keyboard_action = keyboard_action.copy()
-                expert_a = keyboard_action
-            else:
-                # No keys pressed: decay the last keyboard action
-                self.last_keyboard_action *= self.decay_coefficient
+            # Always decay first, then update pressed key dimensions
+            self.last_keyboard_action *= self.decay_coefficient
 
-                # Zero out actions below threshold
+            if any_key_pressed:
+                # Keys pressed: update only the dimensions with active keys
+                # Mask indicates which dimensions have active key presses
+                key_mask = keyboard_action != 0
+                self.last_keyboard_action[key_mask] = keyboard_action[key_mask]
+
+            # Zero out actions below threshold (except gripper)
+            if self.gripper_enabled:
+                # Apply threshold only to non-gripper dimensions
+                mask = np.abs(self.last_keyboard_action[:-1]) < self.decay_threshold
+                self.last_keyboard_action[:-1][mask] = 0.0
+                # Restore gripper value from gripper_state (gripper doesn't decay)
+                gripper_action = 0.9 if self.gripper_state == 'close' else -0.9
+                self.last_keyboard_action[-1] = gripper_action
+            else:
                 mask = np.abs(self.last_keyboard_action) < self.decay_threshold
                 self.last_keyboard_action[mask] = 0.0
 
-                expert_a = self.last_keyboard_action
+            expert_a = self.last_keyboard_action
 
             # Apply action index filtering if needed
             if self.action_indices is not None:
