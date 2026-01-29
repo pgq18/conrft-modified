@@ -117,7 +117,7 @@ class TrainConfig(DefaultTrainingConfig):
         #     save_video=save_video,
         #     config=EnvConfig(),
         # )
-        env = PandaPickCubeGymEnv(render_mode=render_mode, image_obs=True, hz=8, config=EnvConfig())
+        env = PandaPickCubeGymEnv(render_mode=render_mode, image_obs=True, config=EnvConfig())
         classifier=False
         # fake_env=True
         # env = GripperCloseEnv(env)
@@ -157,6 +157,9 @@ class KeyBoardIntervention2(gym.ActionWrapper):
         if self.action_space.shape == (6,):
             self.gripper_enabled = False
 
+        # Initialize last_keyboard_action with correct dimension
+        self.last_keyboard_action = np.zeros(self.action_space.shape[0])
+
         self.left, self.right = False, False
         self.action_indices = action_indices
 
@@ -165,6 +168,9 @@ class KeyBoardIntervention2(gym.ActionWrapper):
         self.action_length = 0.3
         self.current_action = np.array([0, 0, 0, 0, 0, 0])  # 分别对应 W, A, S, D 的状态
         self.flag = False
+        # New state variables for enhanced intervention
+        self.decay_coefficient = 0.9  # Exponential decay factor
+        self.decay_threshold = 0.01  # Threshold to zero out actions
         self.key_states = {
             'w': False,
             'a': False,
