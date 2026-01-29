@@ -150,6 +150,30 @@ class TrainConfig(DefaultTrainingConfig):
 import glfw
 import gymnasium as gym
 class KeyBoardIntervention2(gym.ActionWrapper):
+    """
+    Enhanced keyboard intervention wrapper with two operation modes.
+
+    Mode 1 (L-key toggle): Full intervention mode where keyboard completely
+    replaces model actions. Actions exponentially decay when no keys are pressed,
+    creating smooth coasting behavior between manual commands.
+
+    Mode 2 (Temporary): When L-key mode is disabled, pressing movement keys
+    temporarily overrides model actions. Release immediately switches back to
+    model control with no decay.
+
+    Key bindings:
+    - W/S: X-axis movement (forward/backward)
+    - A/D: Y-axis movement (left/right)
+    - H/J: Z-axis movement (up/down)
+    - K: Toggle gripper state
+    - L: Toggle between Mode 1 and Mode 2
+
+    Attributes:
+        intervened (bool): True = Mode 1 (L-key), False = Mode 2 (temporary)
+        last_keyboard_action (np.ndarray): Last action for decay in Mode 1
+        decay_coefficient (float): Exponential decay factor (default: 0.9)
+        decay_threshold (float): Threshold to zero out actions (default: 0.01)
+    """
     def __init__(self, env, action_indices=None):
         super().__init__(env)
 
@@ -241,7 +265,18 @@ class KeyBoardIntervention2(gym.ActionWrapper):
         self.current_action *= self.action_length
 
     def _build_keyboard_action(self):
-        """Build keyboard action from current key states."""
+        """
+        Build keyboard action from current key states.
+
+        Constructs a 6DOF (or 7DOF if gripper enabled) action vector based on
+        currently pressed movement keys. Each movement direction uses the
+        difference between key pairs (W-S for x-axis, A-D for y-axis, H-J for z-axis).
+
+        Returns:
+            np.ndarray: Action vector with shape (6,) or (7,) depending on gripper
+                        action. Movement components are scaled by action_length,
+                        gripper action is either 0.9 (close) or -0.9 (open).
+        """
         # Build base 6DOF action from WASD + HJK keys
         base_action = np.array([
             int(self.key_states['w']) - int(self.key_states['s']),  # x axis
@@ -260,12 +295,41 @@ class KeyBoardIntervention2(gym.ActionWrapper):
             return base_action
 
     def _any_movement_key_pressed(self):
-        """Check if any movement key (WASD, HJK) is currently pressed."""
+        """
+        Check if any movement key (WASD, HJK) is currently pressed.
+
+        Determines if manual intervention should be active by checking if any
+        of the movement keys (forward/backward/left/right/up/down) are pressed.
+        Excludes gripper toggle (K) and mode toggle (L) keys.
+
+        Returns:
+            bool: True if any movement key is pressed, False otherwise.
+        """
         movement_keys = ['w', 'a', 's', 'd', 'h', 'j']
         return any(self.key_states[key] for key in movement_keys)
 
-    def action(self, action: np.ndarray) -> np.ndarray:
-        """Transform action based on current intervention mode and key states."""
+    def action(self, action: np.ndarray) -> tuple[np.ndarray, bool]:
+        """
+        Transform action based on current intervention mode and key states.
+
+        Implements two-mode intervention logic:
+        - Mode 1 (L-key enabled): Full intervention with exponential decay.
+          When keys are pressed, keyboard actions are used and stored.
+          When no keys are pressed, stored actions decay exponentially.
+        - Mode 2 (L-key disabled): Temporary intervention. Only when keys
+          are pressed, keyboard actions override model actions. Release
+          immediately returns to model control.
+
+        Args:
+            action (np.ndarray): Original action from the model policy.
+                                Shape should match the environment's action space.
+
+        Returns:
+            tuple[np.ndarray, bool]: A tuple containing:
+                - The final action to be executed (keyboard or model)
+                - Boolean indicating whether intervention occurred (True)
+                  or model action was used (False)
+        """
         # Build keyboard action from current key states
         keyboard_action = self._build_keyboard_action()
         any_key_pressed = self._any_movement_key_pressed()
