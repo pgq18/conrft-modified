@@ -205,7 +205,13 @@ class KeyBoardIntervention2(gym.ActionWrapper):
             elif key == glfw.KEY_L:
                 self.intervened = not self.intervened
                 self.env.intervened = self.intervened
-                print(f"Intervention toggled: {self.intervened}")
+
+                # Reset decay state when exiting intervention mode
+                if not self.intervened:
+                    self.last_keyboard_action = np.zeros_like(self.last_keyboard_action)
+
+                mode_name = "L-key full intervention (with decay)" if self.intervened else "Temporary intervention (no decay)"
+                print(f"Intervention mode: {mode_name}")
 
         elif action == glfw.RELEASE:
             if key == glfw.KEY_W:
