@@ -6,6 +6,7 @@ import pickle as pkl
 import datetime
 from absl import app, flags
 import time
+import cv2
 
 from experiments.mappings import CONFIG_MAPPING
 from data_util import add_mc_returns_to_trajectory, add_embeddings_to_trajectory, add_next_embeddings_to_trajectory
@@ -74,6 +75,34 @@ def main(_):
 
         pbar.set_description(f"Return: {returns:.2f}")
 
+        # Display camera images
+        if "wrist_1" in next_obs and "wrist_2" in next_obs:
+            img1 = next_obs["wrist_1"]
+            img2 = next_obs["wrist_2"]
+
+            # Remove batch dimension: (1, H, W, C) -> (H, W, C)
+            if img1.ndim == 4:
+                img1 = img1[0]
+            if img2.ndim == 4:
+                img2 = img2[0]
+
+            # Ensure uint8 type
+            img1 = img1.astype(np.uint8)
+            img2 = img2.astype(np.uint8)
+
+            # Convert RGB to BGR (OpenCV uses BGR format)
+            img1_bgr = cv2.cvtColor(img1, cv2.COLOR_RGB2BGR)
+            img2_bgr = cv2.cvtColor(img2, cv2.COLOR_RGB2BGR)
+
+            # Resize for better viewing
+            img1_resized = cv2.resize(img1_bgr, (320, 320))
+            img2_resized = cv2.resize(img2_bgr, (320, 320))
+
+            # Concatenate horizontally
+            combined = np.hstack((img1_resized, img2_resized))
+            cv2.imshow('Camera Views - Wrist 1 | Wrist 2', combined)
+            cv2.waitKey(1)
+
         obs = next_obs
         if done:
             if info["succeed"]:
@@ -98,6 +127,8 @@ def main(_):
     with open(file_name, "wb") as f:
         pkl.dump(transitions, f)
         print(f"saved {success_needed} demos to {file_name}")
+
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

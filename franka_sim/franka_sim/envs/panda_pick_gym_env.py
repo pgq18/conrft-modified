@@ -44,7 +44,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         image_obs: bool = False,
         config = None,
         hz = 10,
-        autonomous_hz = 20,  # Faster speed for autonomous mode (easier to intervene)
+        autonomous_hz = 10,  # Faster speed for autonomous mode (easier to intervene)
     ):
         self.hz = hz
         self.autonomous_hz = autonomous_hz
