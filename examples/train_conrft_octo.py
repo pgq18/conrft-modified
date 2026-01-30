@@ -61,6 +61,9 @@ flags.DEFINE_integer("pretrain_steps", 2000, "Number of pretrain steps.")
 flags.DEFINE_boolean(
     "debug", False, "Debug mode."
 )  # debug mode will disable wandb logging
+flags.DEFINE_boolean(
+    "show_camera", False, "Show camera views during actor training."
+)  # display camera images in real-time
 
 
 devices = jax.local_devices()
@@ -70,6 +73,55 @@ sharding = jax.sharding.PositionalSharding(devices)
 
 def print_green(x):
     return print("\033[92m {}\033[00m".format(x))
+
+
+def display_camera_views(obs, enabled=True):
+    """
+    Display dual camera views from observations.
+
+    Args:
+        obs: Observation dictionary containing camera images
+        enabled: If False, function does nothing (useful for flag control)
+    """
+    if not enabled:
+        return
+
+    try:
+        import cv2
+
+        # Check if camera keys exist in observation
+        if "wrist_1" not in obs or "wrist_2" not in obs:
+            return
+
+        img1 = obs["wrist_1"]
+        img2 = obs["wrist_2"]
+
+        # Remove batch dimension: (1, H, W, C) -> (H, W, C)
+        if img1.ndim == 4:
+            img1 = img1[0]
+        if img2.ndim == 4:
+            img2 = img2[0]
+
+        # Ensure uint8 type
+        img1 = img1.astype(np.uint8)
+        img2 = img2.astype(np.uint8)
+
+        # Convert RGB to BGR (OpenCV uses BGR format)
+        img1_bgr = cv2.cvtColor(img1, cv2.COLOR_RGB2BGR)
+        img2_bgr = cv2.cvtColor(img2, cv2.COLOR_RGB2BGR)
+
+        # Resize for better viewing
+        img1_resized = cv2.resize(img1_bgr, (320, 320))
+        img2_resized = cv2.resize(img2_bgr, (320, 320))
+
+        # Concatenate horizontally
+        combined = np.hstack((img1_resized, img2_resized))
+        cv2.imshow('Camera Views - Wrist 1 | Wrist 2', combined)
+        cv2.waitKey(1)
+
+    except Exception as e:
+        # Gracefully handle errors (e.g., no X11 display, window closed)
+        print(f"Warning: Camera display failed ({e}). Continuing without display.")
 
 
 ##############################################################################
@@ -108,6 +160,9 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
                 next_obs, reward, done, truncated, info = env.step(actions)
                 obs = next_obs
 
+                # Display camera views if enabled
+                display_camera_views(obs, enabled=FLAGS.show_camera)
+
                 if done:
                     if reward > 0:
                         dt = time.time() - start_time
@@ -123,6 +178,15 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
         print(f"success rate: {success_counter / FLAGS.eval_n_trajs}")
         print(f"average episode length: {np.mean(episode_length_list)}")
         print(f"average time: {np.mean(time_list)}")
+
+        # Cleanup camera display
+        if FLAGS.show_camera:
+            try:
+                import cv2
+                cv2.destroyAllWindows()
+            except:
+                pass
+
         return  # after done eval, return and exit
 
     start_step = (
@@ -194,6 +258,10 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
         with timer.context("step_env"):
             print("action: ", actions)
             next_obs, reward, done, truncated, info = env.step(actions)
+
+            # Display camera views if enabled
+            display_camera_views(next_obs, enabled=FLAGS.show_camera)
+
             if "left" in info:
                 info.pop("left")
             if "right" in info:
@@ -281,6 +349,14 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
         if step % config.log_period == 0:
             stats = {"timer": timer.get_average_times()}
             client.request("send-stats", stats)
+
+    # Cleanup camera display
+    if FLAGS.show_camera:
+        try:
+            import cv2
+            cv2.destroyAllWindows()
+        except:
+            pass
 
 
 ##############################################################################

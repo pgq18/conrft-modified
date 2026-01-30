@@ -5,4 +5,5 @@ python ../../train_conrft_octo.py "$@" \
     --checkpoint_path=/home/pgq/Workspace/VLA/conrft-modified/examples/experiments/pick_cube_sim/checkpoint_1 \
     --actor \
     --ip "10.20.85.133" \
+    --show_camera
     # --eval_checkpoint_step=26000 \
