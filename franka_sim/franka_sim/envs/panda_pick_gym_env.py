@@ -170,10 +170,11 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             )
 
         self.action_space = gym.spaces.Box(
-            low=np.asarray([-1.0, -1.0, -1.0,-1.0, -1.0, -1.0, -1.0]),
-            high=np.asarray([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]),
+            low=np.asarray([-1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0]),
+            high=np.asarray([1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]),
             dtype=np.float32,
         )
+        self._action_space_scale = [0.2, 0.2, 0.2, 0.0, 0.0, 0.0, 1.0]
 
         # NOTE: gymnasium is used here since MujocoRenderer is not available in gym. It
         # is possible to add a similar viewer feature with gym, but that can be a future TODO
@@ -230,7 +231,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         """
         start_time = time.time()
         # x, y, z, grasp = action
-        x, y, z, grasp = action[0], action[1], action[2], action[-1]
+        x, y, z, grasp = action[0]*self._action_space_scale[0], action[1]*self._action_space_scale[1], action[2]*self._action_space_scale[1], action[-1]*self._action_space_scale[-1]
 
 
         # startear reset box if out of workspace
@@ -255,7 +256,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         ng = np.clip(g + dg, 0.0, 1.0)
         self._data.ctrl[self._gripper_ctrl_id] = ng * 255
 
-        
+
 
         for _ in range(self._n_substeps):
             tau = opspace(
@@ -267,8 +268,12 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
                 ori=self._data.mocap_quat[0],
                 joint=_PANDA_HOME,
                 gravity_comp=True,
-                pos_gains=(400.0, 400.0, 400.0),
-                damping_ratio=4
+                # pos_gains=(400.0, 400.0, 400.0),
+                # damping_ratio=4,
+                pos_gains=(1500.0, 1500.0, 1500.0),
+                damping_ratio=1.0,
+                # max_pos_acceleration=50.0,
+                # max_ori_acceleration=10.0
             )
             self._data.ctrl[self._panda_ctrl_ids] = tau
             mujoco.mj_step(self._model, self._data)

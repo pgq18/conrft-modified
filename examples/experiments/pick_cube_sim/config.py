@@ -189,11 +189,12 @@ class KeyBoardIntervention2(gym.ActionWrapper):
 
         self.gripper_state = 'close'
         self.intervened = False
-        self.action_length = 0.3
+        self.action_length = 0.75
         self.current_action = np.array([0, 0, 0, 0, 0, 0])  # 分别对应 W, A, S, D 的状态
         self.flag = False
+        self.action_space_scale = [0.2, 0, 1.0]
         # New state variables for enhanced intervention
-        self.decay_coefficient = 0.5  # Exponential decay factor
+        self.decay_coefficient = 0.3  # Exponential decay factor
         self.decay_threshold = 0.01  # Threshold to zero out actions
         self.key_states = {
             'w': False,

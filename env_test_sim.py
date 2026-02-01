@@ -30,10 +30,11 @@ while True:
     # print(actions)
     # actions = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1]) # relative action
     # actions = np.zeros(env.action_space.sample().shape)
+    print("action:", actions)
     next_obs, reward, done, truncated, info = env.step(actions)
     if "intervene_action" in info:
         actions = info["intervene_action"]
-        print(actions)
+        print("intervene_action: ", actions)
     # print(next_obs["state"])
 
     # Display camera images
