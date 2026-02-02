@@ -410,6 +410,10 @@ class KeyBoardIntervention2(gym.ActionWrapper):
 
     def step(self, action):
         new_action, replaced = self.action(action)
+        print("-------------------------------------------")
+        print("action: ", action)
+        if replaced:
+            print("intervene_action: ", new_action)
 
         obs, rew, done, truncated, info = self.env.step(new_action)
         if replaced:
