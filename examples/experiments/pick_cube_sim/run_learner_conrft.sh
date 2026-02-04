@@ -9,3 +9,4 @@ python ../../train_conrft_octo.py "$@" \
     --pretrain_steps=20000 \
     --debug=False \
     --learner \
+    --backbone "octo" \

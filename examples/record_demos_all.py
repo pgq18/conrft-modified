@@ -7,6 +7,7 @@ import datetime
 from absl import app, flags
 import time
 import cv2
+import yaml
 
 from experiments.mappings import CONFIG_MAPPING
 from data_util import add_mc_returns_to_trajectory, add_embeddings_to_trajectory, add_next_embeddings_to_trajectory
@@ -19,13 +20,23 @@ flags.DEFINE_integer("successes_needed", 20,
 flags.DEFINE_float("reward_scale", 1.0, "reward_scale ")
 flags.DEFINE_float("reward_bias", 0.0, "reward_bias")
 flags.DEFINE_string("backbone", "octo", "Backbone to use.")
+flags.DEFINE_integer("stack_obs_num", 2, "Number of frames to stack")
+
+def load_config(config_path):
+    """Load configuration from YAML file."""
+    with open(config_path, "r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
+    config["data"]["model_type"] = config.get("model_type")
+
+    return config
 
 def main(_):
     assert FLAGS.exp_name in CONFIG_MAPPING, 'Experiment folder not found.'
     config = CONFIG_MAPPING[FLAGS.exp_name]()
     image_keys = config.image_keys
     env = config.get_environment(
-        fake_env=False, save_video=False, classifier=True, stack_obs_num=2)
+        fake_env=False, save_video=False, classifier=True, stack_obs_num=FLAGS.stack_obs_num)
 
     obs, info = env.reset()
     print("Observation keys: ", obs.keys())
@@ -39,9 +50,17 @@ def main(_):
         model = OctoModel.load_pretrained(config.octo_path)
         tasks = model.create_tasks(texts=[config.task_desc]) # instruction embedding
     elif FLAGS.backbone == "walloss":
-        print("Using pretrained walloss for encoder")
         # todo: load pretrained walloss model
-        tasks = None
+        print("Using pretrained walloss for encoder")
+        from wall_x.model.qwen2_5_based.modeling_qwen2_5_vl_act import Qwen2_5_VLMoEForAction
+        train_config = load_config(config.wallx_config_path)
+        model = Qwen2_5_VLMoEForAction.from_pretrained(
+            config.wallx_path, train_config=train_config
+        )
+        model.eval()
+        model = model.to("cuda")
+        model = model.bfloat16()
+        tasks = config.task_desc
     else:
         print("Backbone not supported")
         model = None
@@ -109,7 +128,7 @@ def main(_):
                 trajectory = add_mc_returns_to_trajectory(
                     trajectory, config.discount, FLAGS.reward_scale, FLAGS.reward_bias, config.reward_neg, is_sparse_reward=True)
                 trajectory = add_embeddings_to_trajectory(
-                    trajectory, model, tasks=tasks, image_keys=image_keys)
+                    FLAGS.backbone, trajectory, model, tasks=tasks, image_keys=image_keys, config=config)
                 trajectory = add_next_embeddings_to_trajectory(trajectory)
                 for transition in trajectory:
                     transitions.append(copy.deepcopy(transition))

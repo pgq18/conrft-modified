@@ -171,3 +171,12 @@ datasets/debug_dataset/bridge_dataset/1.0.0/action_*
 checkpoint_*/
 demo_data/
 plans/
+# External VLA model repositories
+octo-conrft/
+wall-x-conrft/
+
+# Claude Code local config
+CLAUDE/
+
+# Test scripts
+reward_test.py

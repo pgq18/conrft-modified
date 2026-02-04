@@ -55,6 +55,7 @@ flags.DEFINE_float("reward_scale", 1.0, "reward_scale ")
 flags.DEFINE_float("reward_bias", 0.0, "reward_bias")
 flags.DEFINE_float("q_weight", 0.1, "q_weight ")
 flags.DEFINE_float("bc_weight", 1.0, "bc_weight")
+flags.DEFINE_string("backbone", "octo", "Backbone to use: octo or walloss")
 
 flags.DEFINE_integer("pretrain_steps", 2000, "Number of pretrain steps.")
 
@@ -127,7 +128,7 @@ def display_camera_views(obs, enabled=True):
 ##############################################################################
 
 
-def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
+def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng, backbone_model):
     """
     This is the actor loop, which runs when "--actor" is set to True.
     """
@@ -244,14 +245,40 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
         with timer.context("sample_actions"):
             if step < config.random_steps:
                 actions = env.action_space.sample()
+                action_embeddings = None  # No embeddings for random actions
             else:
                 sampling_rng, key = jax.random.split(sampling_rng)
-                actions, action_embeddings = agent.sample_actions(
-                    observations=jax.device_put(obs),
-                    tasks=jax.device_put(tasks),
-                    seed=key,
-                    argmax=False,
-                )
+
+                # Generate embeddings based on backbone
+                if FLAGS.backbone == "walloss":
+                    # Import here to avoid issues when backbone is octo
+                    from serl_launcher.common.walloss_integration import generate_walloss_embeddings_single
+
+                    # Generate embeddings using walloss (PyTorch)
+                    action_embeddings_np = generate_walloss_embeddings_single(
+                        walloss_model=backbone_model,
+                        observation=obs,
+                        task_desc=tasks,
+                        config=config,
+                    )
+                    action_embeddings = jax.device_put(action_embeddings_np)
+
+                    # Sample actions using pre-computed embeddings
+                    actions, _ = agent.sample_actions(
+                        observations=jax.device_put(obs),
+                        tasks=jax.device_put(tasks),
+                        seed=key,
+                        argmax=False,
+                    )
+                else:  # octo
+                    # Octo generates embeddings internally
+                    actions, action_embeddings = agent.sample_actions(
+                        observations=jax.device_put(obs),
+                        tasks=jax.device_put(tasks),
+                        seed=key,
+                        argmax=False,
+                    )
+
                 actions = np.asarray(jax.device_get(actions))
 
         # Step environment
@@ -556,8 +583,35 @@ def main(_):
 
     rng, sampling_rng = jax.random.split(rng)
 
-    octo_model = OctoModel.load_pretrained(config.octo_path)
-    tasks = octo_model.create_tasks(texts=[config.task_desc])
+    # Load backbone model based on flag
+    if FLAGS.backbone == "octo":
+        octo_model = OctoModel.load_pretrained(config.octo_path)
+        tasks = octo_model.create_tasks(texts=[config.task_desc])
+        backbone_model = octo_model
+    elif FLAGS.backbone == "walloss":
+        from wall_x.model.qwen2_5_based.modeling_qwen2_5_vl_act import Qwen2_5_VLMoEForAction
+
+        # Load config (paths come from config)
+        def load_config(config_path):
+            import yaml
+            with open(config_path, "r") as f:
+                config_data = yaml.load(f, Loader=yaml.FullLoader)
+            config_data["data"]["model_type"] = config_data.get("model_type")
+            return config_data
+
+        train_config = load_config(config.wallx_config_path)
+        walloss_model = Qwen2_5_VLMoEForAction.from_pretrained(
+            config.wallx_path,
+            train_config=train_config
+        )
+        walloss_model.eval()
+        walloss_model = walloss_model.to("cuda")
+        walloss_model = walloss_model.bfloat16()
+
+        tasks = config.task_desc  # Text string for walloss
+        backbone_model = walloss_model
+    else:
+        raise ValueError(f"Unknown backbone: {FLAGS.backbone}")
 
     if config.setup_mode == 'single-arm-fixed-gripper':
         agent: ConrftCPOctoAgentSingleArm = make_conrft_octo_cp_pixel_agent_single_arm(
@@ -565,7 +619,7 @@ def main(_):
             sample_obs=env.observation_space.sample(),
             sample_action=env.action_space.sample(),
             sample_tasks=tasks,
-            octo_model=octo_model,
+            octo_model=backbone_model,
             image_keys=config.image_keys,
             encoder_type=config.encoder_type,
             discount=config.discount,
@@ -582,7 +636,7 @@ def main(_):
             sample_obs=env.observation_space.sample(),
             sample_action=env.action_space.sample(),
             sample_tasks=tasks,
-            octo_model=octo_model,
+            octo_model=backbone_model,
             image_keys=config.image_keys,
             encoder_type=config.encoder_type,
             discount=config.discount,
@@ -715,6 +769,7 @@ def main(_):
               intvn_data_store,
               env,
               sampling_rng,
+              backbone_model,
               )
 
     else:

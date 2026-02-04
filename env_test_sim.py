@@ -32,6 +32,7 @@ while True:
     # actions = np.zeros(env.action_space.sample().shape)
     # print("action:", actions)
     next_obs, reward, done, truncated, info = env.step(actions)
+    print("state: ", next_obs["state"])
     if "intervene_action" in info:
         actions = info["intervene_action"]
         # print("intervene_action: ", actions)

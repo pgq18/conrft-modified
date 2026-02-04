@@ -2,6 +2,8 @@ import os
 import jax
 import jax.numpy as jnp
 import numpy as np
+import glfw
+import gymnasium as gym
 
 from franka_env.envs.wrappers import (
     Quat2EulerWrapper,
@@ -106,10 +108,17 @@ class TrainConfig(DefaultTrainingConfig):
     setup_mode = "single-arm-learned-gripper"
     task_desc = "Pick up the cube"
     octo_path = "/home/pgq/Models/octo-small-1.5"
+    wallx_path = "/home/pgq/Models/wall-oss-flow"
+    wallx_config_path = "/data/pgq/Workspace/VLA/conrft-modified/examples/experiments/pick_cube_sim/config_qact.yml"
     reward_neg = -0.05
     discount = 0.98
     random_steps = 0
     cta_ratio = 2
+
+    # Walloss-specific configuration
+    action_dim = 7  # For xyz + rpy + gripper
+    agent_pos_dim = 7  # Valid state dimensions: xyz(3) + rpy(3) + gripper(1) = 7
+    pred_horizon = 1  # For demo recording (single action)
 
     def get_environment(self, fake_env=False, save_video=False, classifier=False, render_mode="human", stack_obs_num=1):
         # env = RAMEnv(
@@ -145,10 +154,6 @@ class TrainConfig(DefaultTrainingConfig):
             env = MultiCameraBinaryRewardClassifierWrapper(env, reward_func)
         return env
 
-
-
-import glfw
-import gymnasium as gym
 class KeyBoardIntervention2(gym.ActionWrapper):
     """
     Enhanced keyboard intervention wrapper with two operation modes.

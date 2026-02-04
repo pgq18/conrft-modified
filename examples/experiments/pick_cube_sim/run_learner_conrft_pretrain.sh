@@ -9,3 +9,6 @@ python ../../train_conrft_octo.py "$@" \
     --debug=False \
     --learner \
     --checkpoint_path=/home/pgq/Workspace/VLA/conrft-modified/examples/experiments/pick_cube_sim/checkpoint_2 \
+    --backbone "octo" \
+    # To use walloss backbone, change --backbone "octo" to --backbone "walloss"
+    # Walloss paths are configured in config.py (walloss_path and walloss_config_path)

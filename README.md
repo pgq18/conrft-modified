@@ -21,21 +21,54 @@ We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.c
     conda create -n conrft python=3.10
     ```
 
-2. **Install Jax as follows:**
-    - For CPU (not recommended):
-        ```bash
-        pip install --upgrade "jax[cpu]"
-        ```
+2. **Install pytorch**
+   
+   ```
+   pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128
+   ```
 
-    - For GPU:
-        ```bash
-        pip install --upgrade "jax[cuda11_pip]==0.4.20" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-        ```
-    - See the [Jax Github page](https://github.com/google/jax) for more details on installing Jax.
+3. **Install Jax as follows:**
+   
+    For CPU (not recommended):
+     ```bash
+     pip install --upgrade "jax[cpu]"
+     ```
 
-3. **Install the Octo**
+    For GPU:
+     ```bash
+     pip install --upgrade flax optax orbax-checkpoint "jax[cuda12_pip]==0.4.34" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+     ```
+
+    For TPU
+     ```bash
+     pip install --upgrade "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+     ```
+    See the [Jax Github page](https://github.com/google/jax) for more details on installing Jax.
+
+4. **Install the serl_launcher**
     ```bash
-    git clone https://github.com/cccedric/octo.git
+    cd serl_launcher
+    pip install -e .
+    pip install -r requirements.txt
+    ```
+
+5. **Install the Franka_sim**
+    ```
+    cd franka_sim
+    pip install -e .
+    pip install -r requirements.txt
+    ```
+
+
+6. **Install the requirement**
+
+    ```
+    pip install -r requirements.txt
+    ```
+
+7. **Install the Octo**
+    ```bash
+    git clone https://github.com/pgq18/octo-conrft.git
     cd octo
     pip install -e .
     # pip install -r requirements.txt
@@ -45,14 +78,7 @@ We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.c
     ```
     **Note**: This is a personalized fork of Octo, adding custom functions while preserving its core capabilities for general-purpose robotic manipulation.
 
-4. **Install the serl_launcher**
-    ```bash
-    cd serl_launcher
-    pip install -e .
-    pip install -r requirements.txt
-    ```
-
-5. **Install for serl_robot_infra** 
+8. **Install for serl_robot_infra** 
    
    Please refer to the [README](./serl_robot_infra/README.md) in the `serl_robot_infra` directory for installation instructions and details on operating the Franka robot arm. This document includes guidance on setting up the impedance-based [serl_franka_controllers](https://github.com/rail-berkeley/serl_franka_controllers). After completing the installation, you should be able to start the robot server and interact with the `franka_env` gym for hardware control.
 
