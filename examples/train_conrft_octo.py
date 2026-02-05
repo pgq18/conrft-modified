@@ -65,7 +65,7 @@ flags.DEFINE_boolean(
 flags.DEFINE_boolean(
     "show_camera", False, "Show camera views during actor training."
 )  # display camera images in real-time
-
+flags.DEFINE_integer("stack_obs_num", 2, "Number of frames to stack")
 
 devices = jax.local_devices()
 num_devices = len(devices)
@@ -576,7 +576,7 @@ def main(_):
 
     assert FLAGS.exp_name in CONFIG_MAPPING, "Experiment folder not found."
     env = config.get_environment(
-        fake_env=FLAGS.learner, save_video=FLAGS.eval_checkpoint_step, classifier=True, stack_obs_num=2)
+        fake_env=FLAGS.learner, save_video=FLAGS.eval_checkpoint_step, classifier=True, stack_obs_num=FLAGS.stack_obs_num)
     env = RecordEpisodeStatistics(env)
 
     FLAGS.reward_neg = config.reward_neg

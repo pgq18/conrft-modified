@@ -14,3 +14,4 @@ python ../../train_conrft_octo.py "$@" \
     --learner \
     --checkpoint_path=/home/pgq/Workspace/VLA/conrft-modified/examples/experiments/pick_cube_sim/checkpoint_walloss \
     --backbone "walloss" \
+    --stack_obs_num 1

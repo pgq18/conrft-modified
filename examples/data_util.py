@@ -219,36 +219,17 @@ def add_embeddings_to_trajectory(backbone, trajectory, model, tasks, image_keys,
 
                 # Extract action-type embeddings from the last hidden state
                 # Get last layer hidden states: [batch_size, seq_len, hidden_dim]
-                # hidden_states = outputs["hidden_states"][-1]
                 hidden_states = outputs
 
                 # Get input_ids to identify action tokens
                 input_ids = input_batch["input_ids"]
 
-                # Debug: Print first observation
-                if i == 0:
-                    print(f"DEBUG input_ids shape: {input_ids.shape}")
-                    print(input_ids)
-                    print(f"DEBUG hidden_states shape: {hidden_states.shape}")
-                    print(f"DEBUG action_token_id: {model.action_token_id_set['action_token_id']}")
-                    print(f"DEBUG unique token IDs in input: {torch.unique(input_ids).tolist()[:10]}")
-
                 # Create action token mask to find action token positions
                 action_token_id = model.action_token_id_set["action_token_id"]
                 action_mask = (input_ids == action_token_id)  # [batch_size, seq_len]
-                print(action_mask[-1])
 
                 # Extract embeddings only from action token positions
                 action_embeddings = hidden_states[action_mask]  # [num_action_tokens, hidden_dim]
-
-                # if action_embeddings.shape[0] == 0:
-                #     print(f"WARNING: No action tokens found at trajectory index {i}")
-                #     print(f"  input_ids shape: {input_ids.shape}")
-                #     print(f"  action_token_id: {action_token_id}")
-                #     print(f"  hidden_states shape: {hidden_states.shape}")
-                #     # Fallback: use mean of all tokens as embedding
-                #     action_embeddings = hidden_states.mean(dim=0, keepdim=True)  # [1, hidden_dim]
-                #     print(f"  Using mean pooling as fallback: {action_embeddings.shape}")
 
                 print(f"Found {action_embeddings.shape} action tokens")
 

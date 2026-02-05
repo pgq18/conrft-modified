@@ -110,8 +110,8 @@ class TrainConfig(DefaultTrainingConfig):
     octo_path = "/home/pgq/Models/octo-small-1.5"
     wallx_path = "/home/pgq/Models/wall-oss-flow"
     wallx_config_path = "/data/pgq/Workspace/VLA/conrft-modified/examples/experiments/pick_cube_sim/config_qact.yml"
-    reward_neg = -0.05
-    discount = 0.98
+    reward_neg = -0.01
+    discount = 0.99
     random_steps = 0
     cta_ratio = 2
 
